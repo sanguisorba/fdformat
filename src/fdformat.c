@@ -841,7 +841,7 @@ int mygetopt(int argc, char *argv[])
 void put_logo(void)
 {
   const char msg[] = \
-    "Floppy Disk formatter for FreeDOS(98)"
+    "Floppy Disk formatter for MS-DOS 4.0"
     ", built at " __DATE__ " " __TIME__
     ".";
   printf("%s\n", msg);
@@ -887,8 +887,9 @@ void put_usage(void)
 int main(int argc, char *argv[])
 {
   int rc = 0;
-  CPFILEINFO cfi_kernel, cfi_command;
+  CPFILEINFO cfi_kernel, cfi_msdos, cfi_command;
   char cpy_kernel[] = "@:\\KERNEL.SYS";
+  char cpy_msdos[] = "@:\\MSDOS.SYS";
   char cpy_command[] = "@:\\COMMAND.COM";
   unsigned char daua;
 
@@ -911,8 +912,10 @@ int main(int argc, char *argv[])
     exit(-1);
   }
   memset(&cfi_kernel, 0, sizeof(cfi_kernel));
+  memset(&cfi_msdos, 0, sizeof(cfi_msdos));
   memset(&cfi_command, 0, sizeof(cfi_command));
   cfi_kernel.filename = cpy_kernel;
+  cfi_msdos.filename = cpy_msdos;
   cfi_command.filename = cpy_command;
   
   daua = drive0_to_daua(drivenum0);
@@ -924,9 +927,14 @@ int main(int argc, char *argv[])
   if (optS) {
     unsigned char bootdrv = get_bootdrive_num0();
     cfi_kernel.filename[0] = 'A' + bootdrv;
+    cfi_msdos.filename[0] = 'A' + bootdrv;
     cfi_command.filename[0] = 'A' + bootdrv;
     if (cpfile_read(&cfi_kernel) != 0) {
       fprintf(stderr, "%s の読み込みエラー、もしくはメモリ不足です\n", cfi_kernel.filename);
+      return 1;
+    }
+    if (cpfile_read(&cfi_msdos) != 0) {
+      fprintf(stderr, "%s の読み込みエラー、もしくはメモリ不足です\n", cfi_msdos.filename);
       return 1;
     }
     if (cpfile_read(&cfi_command) != 0) {
@@ -960,6 +968,11 @@ int main(int argc, char *argv[])
       s[0] = 'A' + drivenum0;
       rc = cpfile_write(s, &cfi_kernel);
       if (rc == 0) {
+        strcpy(s, cpy_msdos);
+        s[0] = 'A' + drivenum0;
+        rc = cpfile_write(s, &cfi_msdos);
+      }
+      if (rc == 0) {
         strcpy(s, cpy_command);
         s[0] = 'A' + drivenum0;
         rc = cpfile_write(s, &cfi_command);
@@ -975,4 +988,3 @@ int main(int argc, char *argv[])
 
   return rc;
 }
-
